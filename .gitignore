@@ -1,0 +1,38 @@
+# 构建产物与本地环境
+*.iml
+.gradle/
+.kotlin/
+.idea/
+local.properties
+build/
+captures/
+.externalNativeBuild/
+.cxx/
+
+# 签名密钥：绝对不要提交
+*.jks
+*.keystore
+*.p12
+
+# 交付物（走 GitHub Releases，不放仓库）
+*.apk
+*.aab
+*.idsig
+*.zip
+dist/
+release/
+
+# 调试与临时文件
+dbg/
+_*.sh
+_*.py
+_*.png
+_*.jpg
+_*.db
+*.log
+*.bak
+
+# 打包脚本产物
+module_new/
+.dist_src/
+*.diff
