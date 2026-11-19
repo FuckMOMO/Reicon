@@ -6,6 +6,9 @@
 > 并致谢：**居然是啊松**（酷安帖子的三种暗色图标制作思路）、**天伞桜**（模块挂载架构与素材导入方案）。
 
 ---
+## 效果展示
+
+<img width="1216" height="710" alt="IMG_20261118_174901" src="https://github.com/user-attachments/assets/62ebc8a4-3fee-49ed-a7e2-1ee88aef3664" />
 
 ## 它做什么
 
