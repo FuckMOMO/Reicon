@@ -59,7 +59,6 @@ fun HomeScreen() {
     var showReloadConfirm by remember { mutableStateOf(false) }
     // 任务走应用级 TaskCenter：底部切页不会中止，进度也留得住
     val reloading by TaskCenter.reloading.collectAsState()
-    var reloadFromScratch by remember { mutableStateOf(false) }
     // 立即执行（强制收敛，等价 KSU 播放键）
     val applying by TaskCenter.applying.collectAsState()
 
@@ -278,23 +277,12 @@ fun HomeScreen() {
             text = {
                 Column {
                     Text(
-                        "会做三件事：\n" +
-                            "1. 按 App 内缓存把素材重新写回模块（被删掉的素材直接补回来；缓存也没有的才重新生成，" +
-                            "素材完好的一律原样保留）\n" +
+                        "只做三件事：\n" +
+                            "1. 把你生成过的素材重新写回模块（被删的从 App 缓存补回；" +
+                            "没生成过的保持系统原样，不会自动生成）\n" +
                             "2. 删掉桌面图标缓存（app_icons.db）\n" +
-                            "3. 强制拆挂重挂并重启桌面\n\n" +
-                            "解决的就是「已经装过了所以脚本认为没变化」——不用手动删文件，也不用重刷模块。"
+                            "3. 强制拆挂重挂并重启桌面"
                     )
-                    Row(
-                        Modifier.fillMaxWidth().clickable { reloadFromScratch = !reloadFromScratch },
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Checkbox(checked = reloadFromScratch, onCheckedChange = { reloadFromScratch = it })
-                        Text(
-                            "从头重新生成（忽略缓存，套用当前亮色设置）",
-                            style = MaterialTheme.typography.bodySmall,
-                        )
-                    }
                 }
             },
             confirmButton = {
@@ -302,7 +290,7 @@ fun HomeScreen() {
                     enabled = !reloading,
                     onClick = {
                         showReloadConfirm = false
-                        TaskCenter.reloadAll(ctx, reloadFromScratch)
+                        TaskCenter.reloadAll(ctx)
                     },
                 ) { Text(if (reloading) "重载中…" else "开始重载") }
             },

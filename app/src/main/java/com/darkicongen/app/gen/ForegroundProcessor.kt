@@ -332,6 +332,28 @@ object ForegroundProcessor {
     }
 
     /** 变体尺寸（2x2/1x2/2x1 用不同画布） */
+    /**
+     * 把图层内容按 [ratio] 缩放到原画布中心（保留原始画布尺寸与形状）。
+     *
+     * 用于官方适配包的亮色件：官方 rec_night 的字形占比各不相同，
+     * 直接复制过去尺寸就锁死了；这里先裁掉透明边拿到真图形，再按用户比例摆回去。
+     */
+    fun fitToLayer(src: Bitmap, ratio: Float): Bitmap {
+        val canvasW = src.width
+        val canvasH = src.height
+        val content = trimTransparent(src)
+        if (content.width <= 0 || content.height <= 0) return src
+        val maxSide = maxOf(canvasW, canvasH) * ratio
+        val scale = minOf(maxSide / content.width, maxSide / content.height)
+        val w = (content.width * scale).toInt().coerceAtLeast(1)
+        val h = (content.height * scale).toInt().coerceAtLeast(1)
+        val scaled = Bitmap.createScaledBitmap(content, w, h, true)
+        val out = Bitmap.createBitmap(canvasW, canvasH, Bitmap.Config.ARGB_8888)
+        val c = Canvas(out)
+        c.drawBitmap(scaled, (canvasW - w) / 2f, (canvasH - h) / 2f, null)
+        return out
+    }
+
     fun forCanvas(src: Bitmap, w: Int, h: Int, logoH: Int): Bitmap {
         val scale = logoH.toFloat() / src.height
         val lw = (src.width * scale).toInt().coerceAtLeast(1)

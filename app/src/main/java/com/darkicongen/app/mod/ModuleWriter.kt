@@ -605,8 +605,24 @@ object ModuleWriter {
         for (v in listOf("", "_2x2", "_1x2", "_2x1")) {
             val night = java.io.File(tmp, "rec_night$v.png")
             if (!night.exists()) continue
-            // recfg ← rec_night
-            night.copyTo(java.io.File(tmp, "recfg$v.png"), overwrite = true)
+            /*
+             * recfg ← rec_night，但按当前亮色比例重新摆位：
+             * 直接复制的话字形占比被官方锁死，详情页的比例滑块对官方包就没作用了。
+             */
+            val lightRatio = com.darkicongen.app.gen.RatioPrefs.currentLight(context)
+            runCatching {
+                val bmp = android.graphics.BitmapFactory.decodeFile(night.absolutePath)
+                if (bmp != null) {
+                    val fitted = com.darkicongen.app.gen.ForegroundProcessor.fitToLayer(bmp, lightRatio)
+                    java.io.FileOutputStream(java.io.File(tmp, "recfg$v.png")).use { fos ->
+                        fitted.compress(Bitmap.CompressFormat.PNG, 100, fos)
+                    }
+                } else {
+                    night.copyTo(java.io.File(tmp, "recfg$v.png"), overwrite = true)
+                }
+            }.onFailure {
+                night.copyTo(java.io.File(tmp, "recfg$v.png"), overwrite = true)
+            }
             // recbg ← 同尺寸纯白（尺寸优先取官方 recbg，没有就用 rec_night 的）
             val bgRef = java.io.File(tmp, "recbg$v.png").takeIf { it.exists() } ?: night
             val opts = android.graphics.BitmapFactory.Options().apply { inJustDecodeBounds = true }
@@ -1763,10 +1779,10 @@ object ModuleWriter {
      * 包清单来源：`.packages` 与 `data/oplus/uxicons` 下的全部目录（后者是我们自己的素材目录，
      * 清单被误清空时靠它把包"捡回来"，否则空清单会让整个功能变成空转）。
      *
-     * @param forceRegenerate true = 无视缓存与已有素材，全部按**当前设置**重新生成一遍
-     *        （改了亮色模式之后想一次性套到所有已适配应用就走这个分支）。
+     * 只会：① 用 App 缓存回填他生成过的素材；② 素材齐全的保持不动；③ 其余跳过。
+     * **不会**自动生成任何新素材 —— 生成只能由用户在详情页手动触发。
      */
-    fun reloadAll(context: Context, forceRegenerate: Boolean = false): ReloadResult {
+    fun reloadAll(context: Context): ReloadResult {
         if (!isModuleFlashed()) {
             return ReloadResult(0, 0, 0, 0, 0, 0, false, "模块未刷入")
         }
@@ -1778,7 +1794,7 @@ object ModuleWriter {
         ensureWhitelist(pkgs)
         val installed = installedPackages()
         var restored = 0
-        var regenerated = 0
+        val regenerated = 0  // 已不再自动生成，恒为 0（仅兼容结果结构）
         var kept = 0
         var skipped = 0
         var failed = 0
@@ -1789,10 +1805,11 @@ object ModuleWriter {
             val ok: Boolean
             val branch: String
             when {
-                forceRegenerate && p in installed -> {
-                    ok = regeneratePackage(context, p)
-                    branch = "regen"
-                }
+                /*
+                 * 只回填"他自己生成过的"素材（App 缓存里有记录的），绝不主动绘制。
+                 * 以前这里还有两条 regeneratePackage 分支：素材缺失就从已安装应用重新生成，
+                 * 结果导入伞姨那种"只有暗色件"的包一重载，就被自动补了一套亮色 —— 已删除。
+                 */
                 !cached.isNullOrEmpty() -> {
                     ok = restorePackage(context, p, cached)
                     branch = "restore"
@@ -1804,11 +1821,8 @@ object ModuleWriter {
                     ok = true
                     branch = "keep"
                 }
-                p in installed -> {
-                    ok = regeneratePackage(context, p)
-                    branch = "regen"
-                }
                 else -> {
+                    // 没有缓存、也没有素材：什么都不做（不生成、不补全）
                     ok = true
                     branch = "skip"
                 }
@@ -1816,7 +1830,6 @@ object ModuleWriter {
             when {
                 !ok -> failed++
                 branch == "restore" -> restored++
-                branch == "regen" -> regenerated++
                 branch == "keep" -> kept++
                 else -> skipped++
             }

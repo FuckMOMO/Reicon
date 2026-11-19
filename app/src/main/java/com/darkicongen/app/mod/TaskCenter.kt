@@ -111,12 +111,12 @@ object TaskCenter {
     }
 
     /** 全量重载 */
-    fun reloadAll(ctx: Context, fromScratch: Boolean) {
+    fun reloadAll(ctx: Context) {
         if (reloading.value) return
         reloading.value = true
         scope.launch {
             val r = withContext(Dispatchers.IO) {
-                runCatching { ModuleWriter.reloadAll(ctx, fromScratch) }.getOrNull()
+                runCatching { ModuleWriter.reloadAll(ctx) }.getOrNull()
             }
             reloading.value = false
             toast(

@@ -279,16 +279,39 @@ fun PreviewScreen(
                         "recolor" -> ForegroundProcessor.Style.RECOLOR
                         else -> d.suggested
                     }
+                    /*
+                     * 关键：按**当前滑块的值**现场重算，而不是用 d.cutout / d.recolor
+                     * （那两张是进入页面时按当时比例算好的，滑块后来拖了也不会变，
+                     *  于是预览变了、真写进模块的还是旧比例 —— 就是"比例不生效"的原因）。
+                     */
+                    val fgSource = d.ext.foreground ?: d.original
                     val fgFinal = custom ?: when (styleFinal) {
-                        ForegroundProcessor.Style.CUTOUT -> d.cutout
-                        ForegroundProcessor.Style.RECOLOR -> d.recolor
+                        ForegroundProcessor.Style.CUTOUT ->
+                            ForegroundProcessor.applyStyle(
+                                fgSource, ForegroundProcessor.Style.CUTOUT, 240, d.bg, darkRatioValue,
+                            )
+                        ForegroundProcessor.Style.RECOLOR ->
+                            ForegroundProcessor.applyStyle(
+                                fgSource, ForegroundProcessor.Style.RECOLOR, 240, d.bg, darkRatioValue,
+                            )
                     }
-                    val monoFinal = customMono ?: d.mono
+                    val monoFinal = customMono ?: runCatching {
+                        ForegroundProcessor.toMonochrome(fgSource, 240, darkRatioValue)
+                    }.getOrNull() ?: d.mono
                     // 亮色件：用户上传的浅色图优先；否则按本页选中的亮色方案现场生成
+                    // 亮色同理：按亮色滑块的当前值重算
                     val dayFinal = customDay ?: when (effectiveLight(d, lightPick)) {
                         LightIconProcessor.Mode.OFF -> null
-                        LightIconProcessor.Mode.BRAND -> d.lightBrand
-                        LightIconProcessor.Mode.ORIGINAL -> d.lightOriginal
+                        LightIconProcessor.Mode.BRAND -> d.lightGlyph?.let {
+                            LightIconProcessor.build(
+                                it, d.accentColor, LightIconProcessor.Mode.BRAND, 240, lightRatioValue,
+                            )
+                        } ?: d.lightBrand
+                        LightIconProcessor.Mode.ORIGINAL -> d.lightGlyph?.let {
+                            LightIconProcessor.build(
+                                it, d.accentColor, LightIconProcessor.Mode.ORIGINAL, 240, lightRatioValue,
+                            )
+                        } ?: d.lightOriginal
                     }
                     // 原图标原料入永久缓存（撤销/重生成原料）
                     IconCache.storeOriginal(ctx, row.pkg, d.ext.full, d.ext.foreground, d.ext.background)
