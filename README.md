@@ -79,24 +79,11 @@ $ANDROID_HOME/build-tools/<ver>/apksigner sign \
 └── .managed                    # 历史台账（白名单清理用）
 ```
 
-要点：
-
-- 桌面渲染读的是 **少一层** 的 `/my_product/media/theme/uxicons/hdpi/<包名>/`
-- 挂载在 PID 1 的 mount namespace 里完成（`nsenter -t 1 -m`）
-- 素材目录必须是 **root:root + 755（目录）/ 644（png）**，否则桌面读不到 —— 这是「导入成功但图标不生效」的常见原因
-
-## 已知限制
-
-- 仅针对 ColorOS / OPPO 系主题管线，其他 ROM 不适用
-- 需要 KernelSU（或支持 hybrid_mount 的方案）+ LSPosed 用于白名单注入
-- 官方素材结构随 ColorOS 版本变化，升级系统后可能需要重新核对文件名
 
 ## 许可证与致谢
 
 本项目基于 [zjy2968466837/DarkIcon-Auto](https://github.com/zjy2968466837/DarkIcon-Auto) 改造。
 
-**使用前请先到上游仓库确认其许可证（LICENSE 文件），并按该许可证的要求保留版权声明与相同方式共享。**
-如果上游采用 GPL 系许可证，本项目同样需要以相同许可证发布，并在 README 中保留原作者署名。
 
 ## 免责声明
 
